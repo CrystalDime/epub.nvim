@@ -70,6 +70,7 @@ end
 ---@return number
 function M.create_buffer()
 	reader_bufnr = vim.api.nvim_create_buf(false, true)
+	vim.bo[reader_bufnr].modifiable = false
 	return reader_bufnr
 end
 
