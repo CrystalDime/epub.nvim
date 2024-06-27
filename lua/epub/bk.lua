@@ -153,7 +153,6 @@ end
 -- Main function to create and initialize Bk
 function M.create_bk(epub, args)
 	args = args or {}
-	args.width = args.width or 140
 	args.colors = args.colors or { fg = "White", bg = "Black" }
 	args.chapter = args.chapter or 1
 	args.byte = args.byte or 1
@@ -163,8 +162,8 @@ function M.create_bk(epub, args)
 	local window_info = vim.fn.getwininfo(window_id)[1]
 	local real_width = window_info.width - window_info.textoff
 
-	-- Use the smaller of real_width or args.width
-	args.width = math.min(real_width, args.width)
+	-- Use the smaller of real_width
+	args.width = math.min(real_width) -- maybe allow this to be configurable
 	return new(epub, args)
 end
 
