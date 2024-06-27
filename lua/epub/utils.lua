@@ -7,9 +7,9 @@ local M = {}
 M.unzip = function(epub_path, output_dir)
 	-- Ensure the output directory exists
 	vim.fn.mkdir(output_dir, "p")
-
 	-- Construct the unzip command
-	local cmd = string.format("unzip -o '%s' -d '%s' 2>&1", epub_path, output_dir)
+	local cmd =
+		string.format("unzip -o '%s' -d '%s' 2>&1", vim.fn.shellescape(epub_path), vim.fn.shellescape(output_dir))
 
 	-- Execute the unzip command
 	local output = vim.fn.system(cmd)
