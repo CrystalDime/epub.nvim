@@ -2,6 +2,8 @@
 
 A Neovim plugin for reading EPUB files directly in your editor.
 
+Inspired by [bk](https://github.com/aeosynth/bk)
+
 ## Features
 
 - Open and read EPUB files within Neovim
