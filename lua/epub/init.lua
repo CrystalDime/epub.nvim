@@ -32,14 +32,38 @@ M.setup = function(opts)
 	end
 end
 
+-- Helper function to create a safe, shortened name
+local function create_safe_name(path)
+	-- Get the directory and filename
+	local dir = vim.fn.fnamemodify(path, ":h:t")
+	local name = vim.fn.fnamemodify(path, ":t:r")
+
+	-- Combine them, replace non-alphanumeric characters, and truncate
+	local combined = dir .. "_" .. name
+	local safe = combined:gsub("[^%w%-%_%.%s]", "_")
+	return safe:sub(1, 50) -- Limit to 50 characters
+end
+
 M.open_epub = function(epub_path)
-	local raw_epub = require("epub.epub").new(epub_path, M.options.output_dir, false)
+	-- Normalize the path to handle different representations of the same file
+	local normalized_path = vim.fn.fnamemodify(epub_path, ":p")
+
+	-- Generate a unique, consistent subdirectory name based on the EPUB file path
+	local subdir = create_safe_name(normalized_path)
+
+	-- Create the full path for the subdirectory
+	local extract_dir = vim.fn.fnamemodify(M.options.output_dir .. "/" .. subdir, ":p")
+
+	-- Ensure the subdirectory exists
+	vim.fn.mkdir(extract_dir, "p")
+
+	-- Use the extract_dir for unzipping
+	local raw_epub = require("epub.epub").new(normalized_path, extract_dir, false)
 	local processed_epub = require("epub.bk").create_bk(raw_epub)
 	local view_opts = {
-		epub_path = epub_path,
+		epub_path = normalized_path,
 		data_dir = M.options.data_dir,
 	}
-
 	require("epub.view").open(processed_epub, view_opts)
 end
 
