@@ -53,7 +53,6 @@ When an EPUB is open:
 - `]c`: Next chapter
 - `[c`: Previous chapter
 - `gt`: Show table of contents
-- `gf`: Follow link under cursor
 
 ### API
 
