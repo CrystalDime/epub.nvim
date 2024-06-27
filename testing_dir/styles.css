@@ -1,0 +1,9 @@
+.note {
+  background-color: #f0f0f0;
+  padding: 10px;
+}
+
+.highlight {
+  color: red;
+  font-weight: bold;
+}
