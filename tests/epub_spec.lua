@@ -28,23 +28,23 @@ describe("EPUB module", function()
 	end)
 
 	it("can create a new EPUB object", function()
-		local test_epub = epub.new(test_file, "testing_dir", false)
+		local test_epub = epub.new(test_file, testing_dir, false)
 		assert.not_nil(test_epub)
 	end)
 
 	it("loads chapters", function()
-		local test_epub = epub.new(test_file, "testing_dir", false)
+		local test_epub = epub.new(test_file, testing_dir, false)
 		assert.is_true(#test_epub.chapters > 0)
 		assert.equals(2, #test_epub.chapters)
 	end)
 
 	it("parses metadata", function()
-		local test_epub = epub.new(test_file, "testing_dir", false)
+		local test_epub = epub.new(test_file, testing_dir, false)
 		assert.not_equal(test_epub.meta, "")
 	end)
 
 	it("parses links", function()
-		local test_epub = epub.new(test_file, "testing_dir", false)
+		local test_epub = epub.new(test_file, testing_dir, false)
 		local link_count = 0
 
 		for _ in pairs(test_epub.links) do
@@ -56,7 +56,7 @@ describe("EPUB module", function()
 	end)
 
 	it("handles text formatting", function()
-		local test_epub = epub.new(test_file, "testing_dir", false)
+		local test_epub = epub.new(test_file, testing_dir, false)
 		local chapter2 = test_epub.chapters[2]
 
 		assert.is_true(#chapter2.formatting > 0, "Formatting array is empty")
@@ -120,26 +120,26 @@ describe("EPUB module", function()
 	end)
 
 	it("handles images", function()
-		local test_epub = epub.new(test_file, "testing_dir", false)
+		local test_epub = epub.new(test_file, testing_dir, false)
 		local chapter1 = test_epub.chapters[1]
 		assert.is_true(chapter1.text:find("%[IMG%]") ~= nil)
 	end)
 
 	it("handles lists", function()
-		local test_epub = epub.new(test_file, "testing_dir", false)
+		local test_epub = epub.new(test_file, testing_dir, false)
 		local chapter2 = test_epub.chapters[2]
 		assert.is_true(chapter2.text:find("- List item 1") ~= nil)
 		assert.is_true(chapter2.text:find("- List item 2") ~= nil)
 	end)
 
 	it("handles pre and code blocks", function()
-		local test_epub = epub.new(test_file, "testing_dir", false)
+		local test_epub = epub.new(test_file, testing_dir, false)
 		local chapter2 = test_epub.chapters[2]
 		assert.is_true(chapter2.text:find("function helloWorld") ~= nil)
 	end)
 
 	it("handles CSS classes", function()
-		local test_epub = epub.new(test_file, "testing_dir", false)
+		local test_epub = epub.new(test_file, testing_dir, false)
 
 		local css_content = test_epub.css["styles.css"]
 
@@ -161,7 +161,7 @@ describe("EPUB module", function()
 	end)
 
 	it("applies highlight class styling correctly", function()
-		local test_epub = epub.new(test_file, "testing_dir", false)
+		local test_epub = epub.new(test_file, testing_dir, false)
 		local chapter2 = test_epub.chapters[2]
 
 		local highlight_format = nil
