@@ -13,7 +13,7 @@ Inspired by [bk](https://github.com/aeosynth/bk)
 
 ## Requirements
 
-- Neovim 0.10+
+- Neovim 0.8.3+
 - unzip
   
 ## Installation
