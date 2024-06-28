@@ -1,0 +1,35 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - tests
+  pull_request:
+    branches:
+      - main
+      - tests
+
+jobs:
+  run_tests:
+    strategy:
+      matrix:
+        include:
+          - nvim_tag: v0.8.3
+          - nvim_tag: v0.9.4
+          - nvim_tag: v0.10.0
+
+    name: Run tests
+    runs-on: ubuntu-22.04
+    env:
+      NVIM_TAG: ${{ matrix.nvim_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Neovim and dependencies
+        run: |
+          bash ./.github/workflows/install_nvim.sh
+
+      - name: Run tests
+        run: |
+          bash ./run_tests.sh
