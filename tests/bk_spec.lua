@@ -1,3 +1,4 @@
+local plenary = require("plenary")
 local bk_module = require("epub.bk")
 local epub = require("epub.epub")
 

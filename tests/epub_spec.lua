@@ -1,3 +1,4 @@
+local plenary = require("plenary")
 local epub = require("epub.epub")
 
 local function remove_dir(dir)

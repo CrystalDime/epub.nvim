@@ -1,3 +1,4 @@
+local plenary = require("plenary")
 local xml_parser = require("epub.xml_parser")
 
 describe("XML Parser", function()
