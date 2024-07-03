@@ -246,49 +246,49 @@ function M.setup_links(chapter)
 	end
 end
 
-function M.follow_link()
-	if not current_bk or not current_bk.chapters[current_bk.chapter] then
-		vim.notify("No current book or chapter", vim.log.levels.ERROR)
-		return
-	end
+-- function M.follow_link()
+-- 	if not current_bk or not current_bk.chapters[current_bk.chapter] then
+-- 		vim.notify("No current book or chapter", vim.log.levels.ERROR)
+-- 		return
+-- 	end
+--
+-- 	local cursor = vim.api.nvim_win_get_cursor(0)
+-- 	local current_line = cursor[1] - 1 -- Convert to 0-based index
+-- 	local current_col = cursor[2]
+--
+-- 	local chapter = current_bk.chapters[current_bk.chapter]
+-- 	local current_pos = chapter.line_ends[current_line]
+-- 		- (chapter.line_ends[current_line] - (current_line > 1 and chapter.line_ends[current_line - 1] or 0))
+-- 		+ current_col
+-- 		+ 1
+--
+-- 	for _, link in ipairs(chapter.links) do
+-- 		if current_pos >= link.start and current_pos <= link.finish then
+-- 			-- Found a link at the cursor position
+-- 			if link.url:match("^#") then
+-- 				-- Internal link
+-- 				local target_id = link.url:sub(2)
+-- 				for i, chap in ipairs(current_bk.chapters) do
+-- 					if chap.id == target_id then
+-- 						current_bk.chapter = i
+-- 						M.display_chapter(chap)
+-- 						return
+-- 					end
+-- 				end
+-- 				vim.notify("Target chapter not found: " .. target_id, vim.log.levels.WARN)
+-- 			else
+-- 				-- External link
+-- 				-- You can implement external link handling here, e.g., opening in a browser
+-- 				vim.notify("External link: " .. link.url, vim.log.levels.INFO)
+-- 				-- Uncomment the following line to open the link in the default browser (requires 'xdg-open' on Linux)
+-- 				-- vim.fn.system({"xdg-open", link.url})
+-- 			end
+-- 			return
+-- 		end
+-- 	end
 
-	local cursor = vim.api.nvim_win_get_cursor(0)
-	local current_line = cursor[1] - 1 -- Convert to 0-based index
-	local current_col = cursor[2]
-
-	local chapter = current_bk.chapters[current_bk.chapter]
-	local current_pos = chapter.line_ends[current_line]
-		- (chapter.line_ends[current_line] - (current_line > 1 and chapter.line_ends[current_line - 1] or 0))
-		+ current_col
-		+ 1
-
-	for _, link in ipairs(chapter.links) do
-		if current_pos >= link.start and current_pos <= link.finish then
-			-- Found a link at the cursor position
-			if link.url:match("^#") then
-				-- Internal link
-				local target_id = link.url:sub(2)
-				for i, chap in ipairs(current_bk.chapters) do
-					if chap.id == target_id then
-						current_bk.chapter = i
-						M.display_chapter(chap)
-						return
-					end
-				end
-				vim.notify("Target chapter not found: " .. target_id, vim.log.levels.WARN)
-			else
-				-- External link
-				-- You can implement external link handling here, e.g., opening in a browser
-				vim.notify("External link: " .. link.url, vim.log.levels.INFO)
-				-- Uncomment the following line to open the link in the default browser (requires 'xdg-open' on Linux)
-				-- vim.fn.system({"xdg-open", link.url})
-			end
-			return
-		end
-	end
-
-	vim.notify("No link found at the cursor position", vim.log.levels.INFO)
-end
+-- 	vim.notify("No link found at the cursor position", vim.log.levels.INFO)
+-- end
 ---@param line_ends number[]
 ---@param pos number
 ---@return number line
@@ -335,13 +335,13 @@ function M.setup_keymaps()
 		"",
 		{ callback = M.show_toc, noremap = true, silent = true, desc = "Show table of contents" }
 	)
-	vim.api.nvim_buf_set_keymap(
-		reader_bufnr,
-		"n",
-		"gf",
-		"",
-		{ callback = M.follow_link, noremap = true, silent = true, desc = "Follow link" }
-	)
+	-- vim.api.nvim_buf_set_keymap(
+	-- 	reader_bufnr,
+	-- 	"n",
+	-- 	"gf",
+	-- 	"",
+	-- 	{ callback = M.follow_link, noremap = true, silent = true, desc = "Follow link" }
+	-- )
 end
 
 return M
