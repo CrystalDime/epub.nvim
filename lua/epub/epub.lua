@@ -155,6 +155,7 @@ function M.get_spine(epub)
 	local version = package.attributes["version"]
 	if version == "3.0" then
 		local nav_item = xmlparser.find_by_attribute(manifest_node, "id", "nav")[1]
+			or xmlparser.find_by_attribute(manifest_node, "properties", "nav")[1]
 		local nav_path = nav_item.attributes["href"]
 		local nav_xml = M.get_text(epub, epub.rootdir .. nav_path)
 		local nav_doc = xmlparser.parse(nav_xml)
