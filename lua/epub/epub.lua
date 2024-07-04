@@ -135,10 +135,12 @@ function M.get_spine(epub)
 	local spine_node = xmlparser.find_by_tag(package, "spine")[1]
 
 	for _, child in ipairs(xmlparser.get_children(metadata)) do
-		local name = child.tag
-		local text = xmlparser.get_text(child)
-		if text and name ~= "meta" then
-			epub.meta = epub.meta .. name .. ": " .. text .. "\n"
+		if child.type ~= "text" then
+			local name = child.tag
+			local text = xmlparser.get_text(child)
+			if text and name ~= "meta" then
+				epub.meta = epub.meta .. name .. ": " .. text .. "\n"
+			end
 		end
 	end
 
@@ -236,10 +238,9 @@ end
 function M.render(epub, node, chapter)
 	if node.type == "text" then
 		local text = node.text
-		if text then
-			local start_pos = #chapter.text + 1
+		-- Not important to perserve just new line chars so it seems, but spaces are important so we cant just trim
+		if text and text ~= "\n" then
 			chapter.text = chapter.text .. text
-			local end_pos = #chapter.text
 		end
 		return
 	end
@@ -250,16 +251,12 @@ function M.render(epub, node, chapter)
 	end
 
 	local class = node.attributes["class"]
+	local styles = {}
 	if class then
-		local styles = M.get_styles(epub, class)
-		if styles["font-weight"] == "bold" then
-			M.render_with_attribute(epub, node, chapter, "bold")
-			return
-		elseif styles["font-style"] == "italic" then
-			M.render_with_attribute(epub, node, chapter, "italic")
-			return
-		end
+		styles = M.get_styles(epub, class)
 	end
+
+	local start_pos = #chapter.text + 1
 
 	local tag = node.tag
 	if tag == "br" then
@@ -286,6 +283,10 @@ function M.render(epub, node, chapter)
 		M.render_with_attribute(epub, node, chapter, "italic")
 	elseif tag == "strong" then
 		M.render_with_attribute(epub, node, chapter, "bold")
+	elseif tag == "h1" or tag == "h2" or tag == "h3" or tag == "h4" or tag == "h5" or tag == "h6" then
+		chapter.text = chapter.text .. "\n"
+		M.render_with_attribute(epub, node, chapter, "bold")
+		chapter.text = chapter.text .. "\n"
 	elseif tag:match("^h%d$") then
 		chapter.text = chapter.text .. "\n"
 		M.render_with_attribute(epub, node, chapter, "bold")
@@ -310,6 +311,15 @@ function M.render(epub, node, chapter)
 		chapter.text = chapter.text .. "\n"
 	else
 		M.render_children(epub, node, chapter)
+	end
+
+	-- Apply class-based styles after tag-based rendering
+	local end_pos = #chapter.text
+	if styles["font-weight"] == "bold" then
+		table.insert(chapter.formatting, { start = start_pos, finish = end_pos, attribute = "bold" })
+	end
+	if styles["font-style"] == "italic" then
+		table.insert(chapter.formatting, { start = start_pos, finish = end_pos, attribute = "italic" })
 	end
 end
 

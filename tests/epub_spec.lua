@@ -123,7 +123,7 @@ describe("EPUB module", function()
 	it("handles images", function()
 		local test_epub = epub.new(test_file, testing_dir, false)
 		local chapter1 = test_epub.chapters[1]
-		assert.is_true(chapter1.text:find("%[IMG%]") ~= nil)
+		assert.is_true(chapter1.text:find("%[%[IMG [^|]+|/[^%]]+%]%]") ~= nil)
 	end)
 
 	it("handles lists", function()
