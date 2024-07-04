@@ -12,6 +12,7 @@ local util = require("epub.utils")
 ---@field formatting FormattingRange[]
 ---@field links table<number, {start: number, finish: number, url: string}>
 ---@field frag table<string, number>
+---@field path string
 
 ---@class Epub
 ---@field container UnzipResult
@@ -82,6 +83,7 @@ function M.get_chapters(epub, spine)
 			state = {},
 			links = {},
 			frag = {},
+			path = chapter.path,
 		}
 
 		M.render(epub, body, c)
@@ -205,6 +207,29 @@ function M.epub3(doc, nav)
 	end
 end
 
+local function resolvePath(basePath, relativePath)
+	-- Split the base path into components
+	local baseComponents = {}
+	for component in basePath:gmatch("[^/]+") do
+		table.insert(baseComponents, component)
+	end
+
+	-- Remove the file name from base components (we only want the directory)
+	table.remove(baseComponents)
+
+	-- Process the relative path
+	for component in relativePath:gmatch("[^/]+") do
+		if component == ".." then
+			table.remove(baseComponents)
+		elseif component ~= "." then
+			table.insert(baseComponents, component)
+		end
+	end
+
+	-- Join the path components
+	return "/" .. table.concat(baseComponents, "/")
+end
+
 ---@param epub Epub
 ---@param node XMLNode
 ---@param chapter Chapter
@@ -242,7 +267,11 @@ function M.render(epub, node, chapter)
 	elseif tag == "hr" then
 		chapter.text = chapter.text .. "\n* * *\n"
 	elseif tag == "img" then
-		chapter.text = chapter.text .. "\n[IMG]\n"
+		local basePath = chapter.path
+		local relativePath = node.attributes["src"]
+		local altText = node.attributes["alt"] or ""
+		local absolutePath = resolvePath(basePath, relativePath)
+		chapter.text = chapter.text .. "\n[[IMG " .. altText .. "|" .. absolutePath .. "]]\n"
 	elseif tag == "a" then
 		local href = node.attributes["href"]
 		if href and not href:match("^http") then
@@ -253,7 +282,7 @@ function M.render(epub, node, chapter)
 		else
 			M.render_children(epub, node, chapter)
 		end
-	elseif tag == "em" then
+	elseif tag == "em" or tag == "cite" then
 		M.render_with_attribute(epub, node, chapter, "italic")
 	elseif tag == "strong" then
 		M.render_with_attribute(epub, node, chapter, "bold")
