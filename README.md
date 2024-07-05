@@ -55,6 +55,7 @@ When an EPUB is open:
 - `]c`: Next chapter
 - `[c`: Previous chapter
 - `gt`: Show table of contents
+- `gi`: Open image on current line
 
 ### API
 
