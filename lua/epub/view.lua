@@ -86,6 +86,10 @@ function M.display_chapter(chapter)
 	if reader_bufnr == nil then
 		return -- error handle this probably
 	end
+
+	-- set buffer to readonly
+	vim.bo[reader_bufnr].modifiable = true
+
 	---@type string[]
 	local lines = {}
 	---@type number[]
@@ -112,6 +116,8 @@ function M.display_chapter(chapter)
 	M.setup_links(chapter)
 	M.setup_images(chapter)
 	vim.api.nvim_win_set_cursor(0, { 1, 0 })
+	-- return to unmodifiable
+	vim.bo[reader_bufnr].modifiable = false
 end
 
 function M.next_chapter()
