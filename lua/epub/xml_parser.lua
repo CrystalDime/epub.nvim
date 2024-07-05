@@ -74,23 +74,27 @@ function M.parse(xml)
 			local j = xml:find("<", i, true)
 			if j then
 				local text = xml:sub(i, j - 1)
-				if trim(text) ~= "" then
-					local text_node = { type = "text", text = text, parent = current }
-					table.insert(current.children, text_node)
-				end
+				local text_node = { type = "text", text = text, parent = current }
+				table.insert(current.children, text_node)
 				i = j
 			else
 				local text = xml:sub(i)
-				if trim(text) ~= "" then
-					local text_node = { type = "text", text = text, parent = current }
-					table.insert(current.children, text_node)
-				end
+				local text_node = { type = "text", text = text, parent = current }
+				table.insert(current.children, text_node)
 				i = #xml + 1
 			end
 		end
 	end
 
-	return current.children[1] or current
+	-- Find the first non-text node child
+	for _, child in ipairs(current.children) do
+		if child.type ~= "text" then
+			return child
+		end
+	end
+
+	-- If no non-text child is found, return the root element itself
+	return current
 end
 
 ---@param node XMLNode
@@ -145,13 +149,13 @@ function M.get_text(node)
 		return node.text
 	end
 
-	local text = ""
+	local text = {}
 	if node.type == "element" then
 		for _, child in ipairs(node.children) do
-			text = text .. M.get_text(child)
+			table.insert(text, M.get_text(child))
 		end
 	end
-	return trim(text)
+	return trim(table.concat(text, " "))
 end
 
 ---@param node XMLNode

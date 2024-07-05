@@ -5,6 +5,7 @@ local options = {}
 ---@class ViewOpts
 ---@field epub_path string
 ---@field data_dir string
+---@field working_dir string
 
 ---@type number|nil
 local reader_bufnr = nil
@@ -14,6 +15,9 @@ local current_bk = nil
 
 ---@type string|nil
 local current_epub_path = nil
+
+---@type string|nil
+local current_working_dir = nil
 
 ---@type string|nil
 local current_data_file = nil
@@ -42,7 +46,12 @@ end
 ---@param opts ViewOpts
 function M.open(bk, opts)
 	current_bk = bk
+	-- path of the .epub file
 	current_epub_path = opts.epub_path
+
+	-- path of the unzipped .epub directory
+	current_working_dir = opts.working_dir
+
 	current_data_file = get_epub_data_file(opts.epub_path, opts.data_dir)
 
 	if not current_bk then
@@ -63,7 +72,6 @@ function M.open(bk, opts)
 	vim.api.nvim_command("highlight EpubBold gui=bold")
 	vim.api.nvim_command("highlight EpubItalic gui=italic")
 	vim.api.nvim_command("highlight EpubUnderline gui=underline")
-	--vim.api.nvim_command("highlight EpubLink guifg=blue gui=underline")
 	vim.api.nvim_command("highlight EpubLinkIcon guifg=green")
 end
 
@@ -78,6 +86,10 @@ function M.display_chapter(chapter)
 	if reader_bufnr == nil then
 		return -- error handle this probably
 	end
+
+	-- set buffer to readonly
+	vim.bo[reader_bufnr].modifiable = true
+
 	---@type string[]
 	local lines = {}
 	---@type number[]
@@ -102,7 +114,10 @@ function M.display_chapter(chapter)
 
 	M.apply_formatting(chapter)
 	M.setup_links(chapter)
+	M.setup_images(chapter)
 	vim.api.nvim_win_set_cursor(0, { 1, 0 })
+	-- return to unmodifiable
+	vim.bo[reader_bufnr].modifiable = false
 end
 
 function M.next_chapter()
@@ -246,49 +261,59 @@ function M.setup_links(chapter)
 	end
 end
 
-function M.follow_link()
-	if not current_bk or not current_bk.chapters[current_bk.chapter] then
-		vim.notify("No current book or chapter", vim.log.levels.ERROR)
+---@param chapter Chapter
+function M.setup_images(chapter)
+	if reader_bufnr == nil then
+		vim.notify("Reader buffer is nil", vim.log.levels.ERROR)
+		return
+	end
+
+	local ns_id = vim.api.nvim_create_namespace("epub_images")
+	local lines = vim.api.nvim_buf_get_lines(reader_bufnr, 0, -1, false)
+	local replacements = {}
+
+	for i, line in ipairs(lines) do
+		local alt_text, rel_path = line:match("^%[%[IMG ([^|]+)|([^%]]+)%]%]$")
+		if alt_text and rel_path then
+			local replacement = string.format("🖼️ [Image: %s | %s]", alt_text, rel_path)
+			table.insert(replacements, { line = i - 1, text = replacement })
+		end
+	end
+
+	-- Apply replacements
+	for i = #replacements, 1, -1 do -- Iterate in reverse to avoid line number changes
+		local repl = replacements[i]
+		vim.api.nvim_buf_set_lines(reader_bufnr, repl.line, repl.line + 1, false, { repl.text })
+	end
+end
+
+function M.open_image()
+	if not current_bk or not current_epub_path or not current_working_dir then
+		vim.notify("No current book or EPUB path or Working Directory", vim.log.levels.ERROR)
 		return
 	end
 
 	local cursor = vim.api.nvim_win_get_cursor(0)
 	local current_line = cursor[1] - 1 -- Convert to 0-based index
-	local current_col = cursor[2]
+	local line_content = vim.api.nvim_buf_get_lines(reader_bufnr, current_line, current_line + 1, false)[1]
 
-	local chapter = current_bk.chapters[current_bk.chapter]
-	local current_pos = chapter.line_ends[current_line]
-		- (chapter.line_ends[current_line] - (current_line > 1 and chapter.line_ends[current_line - 1] or 0))
-		+ current_col
-		+ 1
-
-	for _, link in ipairs(chapter.links) do
-		if current_pos >= link.start and current_pos <= link.finish then
-			-- Found a link at the cursor position
-			if link.url:match("^#") then
-				-- Internal link
-				local target_id = link.url:sub(2)
-				for i, chap in ipairs(current_bk.chapters) do
-					if chap.id == target_id then
-						current_bk.chapter = i
-						M.display_chapter(chap)
-						return
-					end
-				end
-				vim.notify("Target chapter not found: " .. target_id, vim.log.levels.WARN)
-			else
-				-- External link
-				-- You can implement external link handling here, e.g., opening in a browser
-				vim.notify("External link: " .. link.url, vim.log.levels.INFO)
-				-- Uncomment the following line to open the link in the default browser (requires 'xdg-open' on Linux)
-				-- vim.fn.system({"xdg-open", link.url})
-			end
-			return
+	local rel_path = line_content:match("^🖼️ %[Image: .* | (.+)%]$")
+	if rel_path then
+		local abs_path = vim.fn.fnamemodify(current_working_dir, ":h") .. "/" .. rel_path
+		local cmd
+		if vim.fn.has("win32") == 1 then
+			cmd = string.format('start "" "%s"', abs_path) -- untested
+		elseif vim.fn.has("mac") == 1 then
+			cmd = string.format('open "%s"', abs_path) -- untested
+		else
+			cmd = string.format('xdg-open "%s"', abs_path)
 		end
+		vim.fn.system(cmd)
+	else
+		vim.notify("No image found at the cursor position", vim.log.levels.INFO)
 	end
-
-	vim.notify("No link found at the cursor position", vim.log.levels.INFO)
 end
+
 ---@param line_ends number[]
 ---@param pos number
 ---@return number line
@@ -338,9 +363,9 @@ function M.setup_keymaps()
 	vim.api.nvim_buf_set_keymap(
 		reader_bufnr,
 		"n",
-		"gf",
+		"gi",
 		"",
-		{ callback = M.follow_link, noremap = true, silent = true, desc = "Follow link" }
+		{ callback = M.open_image, noremap = true, silent = true, desc = "Open image on line" }
 	)
 end
 

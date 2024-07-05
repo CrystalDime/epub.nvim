@@ -63,6 +63,7 @@ M.open_epub = function(epub_path)
 	local view_opts = {
 		epub_path = normalized_path,
 		data_dir = M.options.data_dir,
+		working_dir = extract_dir,
 	}
 	require("epub.view").open(processed_epub, view_opts)
 end

@@ -12,6 +12,7 @@ local util = require("epub.utils")
 ---@field formatting FormattingRange[]
 ---@field links table<number, {start: number, finish: number, url: string}>
 ---@field frag table<string, number>
+---@field path string
 
 ---@class Epub
 ---@field container UnzipResult
@@ -82,6 +83,7 @@ function M.get_chapters(epub, spine)
 			state = {},
 			links = {},
 			frag = {},
+			path = chapter.path,
 		}
 
 		M.render(epub, body, c)
@@ -133,10 +135,12 @@ function M.get_spine(epub)
 	local spine_node = xmlparser.find_by_tag(package, "spine")[1]
 
 	for _, child in ipairs(xmlparser.get_children(metadata)) do
-		local name = child.tag
-		local text = xmlparser.get_text(child)
-		if text and name ~= "meta" then
-			epub.meta = epub.meta .. name .. ": " .. text .. "\n"
+		if child.type ~= "text" then
+			local name = child.tag
+			local text = xmlparser.get_text(child)
+			if text and name ~= "meta" then
+				epub.meta = epub.meta .. name .. ": " .. text .. "\n"
+			end
 		end
 	end
 
@@ -154,7 +158,8 @@ function M.get_spine(epub)
 
 	local version = package.attributes["version"]
 	if version == "3.0" then
-		local nav_item = xmlparser.find_by_attribute(manifest_node, "properties", "nav")[1]
+		local nav_item = xmlparser.find_by_attribute(manifest_node, "id", "nav")[1]
+			or xmlparser.find_by_attribute(manifest_node, "properties", "nav")[1]
 		local nav_path = nav_item.attributes["href"]
 		local nav_xml = M.get_text(epub, epub.rootdir .. nav_path)
 		local nav_doc = xmlparser.parse(nav_xml)
@@ -204,16 +209,38 @@ function M.epub3(doc, nav)
 	end
 end
 
+local function resolvePath(basePath, relativePath)
+	-- Split the base path into components
+	local baseComponents = {}
+	for component in basePath:gmatch("[^/]+") do
+		table.insert(baseComponents, component)
+	end
+
+	-- Remove the file name from base components (we only want the directory)
+	table.remove(baseComponents)
+
+	-- Process the relative path
+	for component in relativePath:gmatch("[^/]+") do
+		if component == ".." then
+			table.remove(baseComponents)
+		elseif component ~= "." then
+			table.insert(baseComponents, component)
+		end
+	end
+
+	-- Join the path components
+	return "/" .. table.concat(baseComponents, "/")
+end
+
 ---@param epub Epub
 ---@param node XMLNode
 ---@param chapter Chapter
 function M.render(epub, node, chapter)
 	if node.type == "text" then
 		local text = node.text
-		if text then
-			local start_pos = #chapter.text + 1
+		-- Not important to perserve just new line chars so it seems, but spaces are important so we cant just trim
+		if text and text ~= "\n" then
 			chapter.text = chapter.text .. text
-			local end_pos = #chapter.text
 		end
 		return
 	end
@@ -224,16 +251,12 @@ function M.render(epub, node, chapter)
 	end
 
 	local class = node.attributes["class"]
+	local styles = {}
 	if class then
-		local styles = M.get_styles(epub, class)
-		if styles["font-weight"] == "bold" then
-			M.render_with_attribute(epub, node, chapter, "bold")
-			return
-		elseif styles["font-style"] == "italic" then
-			M.render_with_attribute(epub, node, chapter, "italic")
-			return
-		end
+		styles = M.get_styles(epub, class)
 	end
+
+	local start_pos = #chapter.text + 1
 
 	local tag = node.tag
 	if tag == "br" then
@@ -241,7 +264,11 @@ function M.render(epub, node, chapter)
 	elseif tag == "hr" then
 		chapter.text = chapter.text .. "\n* * *\n"
 	elseif tag == "img" then
-		chapter.text = chapter.text .. "\n[IMG]\n"
+		local basePath = chapter.path
+		local relativePath = node.attributes["src"]
+		local altText = node.attributes["alt"] or ""
+		local absolutePath = resolvePath(basePath, relativePath)
+		chapter.text = chapter.text .. "\n[[IMG " .. altText .. "|" .. absolutePath .. "]]\n"
 	elseif tag == "a" then
 		local href = node.attributes["href"]
 		if href and not href:match("^http") then
@@ -252,10 +279,14 @@ function M.render(epub, node, chapter)
 		else
 			M.render_children(epub, node, chapter)
 		end
-	elseif tag == "em" then
+	elseif tag == "em" or tag == "cite" then
 		M.render_with_attribute(epub, node, chapter, "italic")
 	elseif tag == "strong" then
 		M.render_with_attribute(epub, node, chapter, "bold")
+	elseif tag == "h1" or tag == "h2" or tag == "h3" or tag == "h4" or tag == "h5" or tag == "h6" then
+		chapter.text = chapter.text .. "\n"
+		M.render_with_attribute(epub, node, chapter, "bold")
+		chapter.text = chapter.text .. "\n"
 	elseif tag:match("^h%d$") then
 		chapter.text = chapter.text .. "\n"
 		M.render_with_attribute(epub, node, chapter, "bold")
@@ -280,6 +311,15 @@ function M.render(epub, node, chapter)
 		chapter.text = chapter.text .. "\n"
 	else
 		M.render_children(epub, node, chapter)
+	end
+
+	-- Apply class-based styles after tag-based rendering
+	local end_pos = #chapter.text
+	if styles["font-weight"] == "bold" then
+		table.insert(chapter.formatting, { start = start_pos, finish = end_pos, attribute = "bold" })
+	end
+	if styles["font-style"] == "italic" then
+		table.insert(chapter.formatting, { start = start_pos, finish = end_pos, attribute = "italic" })
 	end
 end
 
