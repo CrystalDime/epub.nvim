@@ -7,6 +7,13 @@ local M = {}
 M.unzip = function(epub_path, output_dir)
 	-- Ensure the output directory exists
 	vim.fn.mkdir(output_dir, "p")
+
+	-- Normalize Windows paths: replace backslashes with slashes and remove trailing slash
+	if jit and jit.os == "Windows" then
+		epub_path = epub_path:gsub("\\", "/")
+		output_dir = output_dir:gsub("\\", "/"):gsub("/$", "") -- remove trailing slash
+	end
+
 	-- Construct the unzip command
 	local cmd = string.format("unzip -o %s -d %s 2>&1", vim.fn.shellescape(epub_path), vim.fn.shellescape(output_dir))
 
